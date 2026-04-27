@@ -11,7 +11,7 @@ git clone https://github.com/Bdeering1/claude-box.git
 ```
 
 ## Usage
-Configure your dependencies in the provided Dockerfile. This is any tool you want Claude Code to have access to at runtime.
+Configure your dependencies in the provided Dockerfile. These are any tools you want Claude Code to have access to at runtime.
 
 Make sure you have `CLAUDE_CODE_OAUTH_TOKEN` or `ANTHROPIC_API_KEY` set, then run:
 
