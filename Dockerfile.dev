@@ -1,0 +1,22 @@
+FROM claude-code
+ 
+# Install UV
+RUN curl -fsSL https://astral.sh/uv/install.sh | bash && \
+    mkdir -p ${HOME}/.cache && \
+    chmod 777 ${HOME}/.cache
+
+# Install language deps.
+RUN apt-get update && apt-get install -y \
+    bc \
+    libatomic1 \
+    python3 \
+    golang-go \
+    rustc \
+    nodejs npm
+
+# Install playwright
+RUN apt-get install -y libnspr4 libnss3 libatk1.0-0 libatk-bridge2.0-0 libcups2 libdrm2 libxkbcommon0 libxcomposite1 libxdamage1 libxfixes3 libxrandr2 libgbm1 libasound2
+
+RUN npx playwright install chromium
+
+RUN apt-get clean

@@ -1,0 +1,76 @@
+#!/usr/bin/env bash
+
+# Parse flags
+CONFIG_DIR="$HOME/.config/claude-docker"
+FORCE_API_USAGE=false
+PROFILE=""
+POSITIONAL_ARGS=()
+CLAUDE_ARGS=()
+
+while [[ $# -gt 0 ]]; do
+  case $1 in
+    --) shift; CLAUDE_ARGS+=("$@"); break ;;
+    -k|--api-key) FORCE_API_USAGE=true ;;
+    -p|--profile) shift; PROFILE="$1" ;;
+    *) POSITIONAL_ARGS+=("$1") ;;
+  esac
+  shift
+done
+set -- "${POSITIONAL_ARGS[@]}"
+
+# Check API key
+if [ -n "$CLAUDE_CODE_OAUTH_TOKEN" ] && [ ! "$FORCE_API_USAGE" = true ]; then
+  AUTH_ENV=("-e" "CLAUDE_CODE_OAUTH_TOKEN=$CLAUDE_CODE_OAUTH_TOKEN")
+elif [ -n "$ANTHROPIC_API_KEY" ]; then
+  AUTH_ENV=("-e" "ANTHROPIC_API_KEY=$ANTHROPIC_API_KEY")
+else
+  echo "Error: No ANTHROPIC_API_KEY or CLAUDE_CODE_OAUTH_TOKEN set."
+  exit 1
+fi
+
+# Build image
+if [ -z "$PROFILE" ]; then
+  IMAGE="claude-code"
+  docker build -t "$IMAGE" "$CONFIG_DIR" || exit $?
+else
+  DOCKERFILE="$CONFIG_DIR/Dockerfile.${PROFILE}"
+  if [ ! -f "$DOCKERFILE" ]; then
+    echo "Error: '$PROFILE' not found (expected Dockerfile.$PROFILE file)."
+    exit 1
+  fi
+  IMAGE="claude-code-${PROFILE}"
+  docker build -t "$IMAGE" -f "$DOCKERFILE" "$CONFIG_DIR" || exit $?
+fi
+
+# Set container name
+BASE_CONTAINER_NAME="claude-code-session"
+i=0
+
+while true; do
+  CONTAINER_NAME="$BASE_CONTAINER_NAME"
+  if [ "$i" -ne 0 ]; then CONTAINER_NAME="${BASE_CONTAINER_NAME}-$i"; fi
+
+  docker container inspect "$CONTAINER_NAME" >/dev/null 2>&1 || break
+  ((i++))
+done
+
+# Set mount directory
+if [ -z "$1" ]; then
+  TARGET_DIR="$(pwd)"
+elif [ ! -d "$1" ]; then
+  echo "Error: '$1' is not a valid directory."
+  exit 1
+else
+  TARGET_DIR="$(cd "$1" && pwd)"
+fi
+
+CONTAINER_HOME=$(docker inspect --format='{{range .Config.Env}}{{println .}}{{end}}' claude-code | grep '^HOME=' | cut -d= -f2)
+ 
+docker run -it --rm \
+  --name "$CONTAINER_NAME" \
+  --user "$(id -u):$(id -g)" \
+  "${AUTH_ENV[@]}" \
+  -v "$TARGET_DIR":/workspace \
+  -v "$HOME/.claude":"$CONTAINER_HOME"/.claude \
+  -v "$HOME/.claude.json":"$CONTAINER_HOME"/.claude.json \
+  "$IMAGE" claude "${CLAUDE_ARGS[@]}"
