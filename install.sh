@@ -40,11 +40,11 @@ fi
 mkdir -p "$CONFIG_DIR"
 mkdir -p "$INSTALL_DIR"
 
-ln -sf "$REPO_DIR/Dockerfile" "$CONFIG_DIR/Dockerfile"
+ln -sf "$REPO_DIR/Dockerfile" "$CONFIG_DIR"
 for dockerfile in "$REPO_DIR"/Dockerfile.*; do
-  ln -sf "$dockerfile" "$CONFIG_DIR/$(basename "$dockerfile")"
+  ln -sf "$dockerfile" "$CONFIG_DIR"
 done
  
-ln -sf "$REPO_DIR/$SCRIPT_NAME" "$INSTALL_DIR/$SCRIPT_NAME"
+ln -sf "$REPO_DIR/$SCRIPT_NAME" "$INSTALL_DIR"
  
 echo "Installation complete. Run '$SCRIPT_NAME' to get started."
