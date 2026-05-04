@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Parse flags
-CONFIG_DIR="$HOME/.config/claude-docker"
+CONFIG_DIR="$HOME/.config/claude-box"
 FORCE_API_USAGE=false
 PROFILE=""
 POSITIONAL_ARGS=()
@@ -31,16 +31,19 @@ fi
 # Build image
 if [ -z "$PROFILE" ]; then
   IMAGE="claude-code"
-  docker build -t "$IMAGE" "$CONFIG_DIR" || exit $?
+  DOCKERFILE="$CONFIG_DIR/Dockerfile"
 else
-  DOCKERFILE="$CONFIG_DIR/Dockerfile.${PROFILE}"
+  IMAGE="claude-code-${PROFILE}"
+  DOCKERFILE="$CONFIG_DIR/Dockerfile.$PROFILE"
   if [ ! -f "$DOCKERFILE" ]; then
     echo "Error: '$PROFILE' not found (expected Dockerfile.$PROFILE file)."
     exit 1
   fi
-  IMAGE="claude-code-${PROFILE}"
-  docker build -t "$IMAGE" -f "$DOCKERFILE" "$CONFIG_DIR" || exit $?
 fi
+
+# resolve symlink (if applicable) before passing to Docker
+DOCKERFILE="$(readlink "$DOCKERFILE" || echo "$DOCKERFILE")"
+docker build -t "$IMAGE" -f "$DOCKERFILE" "$CONFIG_DIR" || exit $?
 
 # Set container name
 BASE_CONTAINER_NAME="claude-code-session"
