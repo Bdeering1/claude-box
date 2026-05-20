@@ -4,6 +4,7 @@
 CONFIG_DIR="$HOME/.config/claude-box"
 BASE_IMAGE="claude-code"
 FORCE_API_USAGE=false
+NO_BUILD=false
 PROFILE=""
 POSITIONAL_ARGS=()
 CLAUDE_ARGS=()
@@ -12,6 +13,7 @@ while [[ $# -gt 0 ]]; do
   case $1 in
     --) shift; CLAUDE_ARGS+=("$@"); break ;;
     -k|--api-key) FORCE_API_USAGE=true ;;
+    -n|--no-build) shift; NO_BUILD="$1" ;;
     -p|--profile) shift; PROFILE="$1" ;;
     *) POSITIONAL_ARGS+=("$1") ;;
   esac
@@ -20,7 +22,7 @@ done
 set -- "${POSITIONAL_ARGS[@]}"
 
 # Check API key
-if [ -n "$CLAUDE_CODE_OAUTH_TOKEN" ] && [ ! "$FORCE_API_USAGE" = true ]; then
+if [ -n "$CLAUDE_CODE_OAUTH_TOKEN" ] && ! $FORCE_API_USAGE; then
   AUTH_ENV=("-e" "CLAUDE_CODE_OAUTH_TOKEN=$CLAUDE_CODE_OAUTH_TOKEN")
 elif [ -n "$ANTHROPIC_API_KEY" ]; then
   AUTH_ENV=("-e" "ANTHROPIC_API_KEY=$ANTHROPIC_API_KEY")
@@ -34,8 +36,10 @@ fi
 IMAGE="$BASE_IMAGE"
 
 # resolve symlink before passing to Docker
-DOCKERFILE="$(readlink "$CONFIG_DIR/Dockerfile" || echo "$CONFIG_DIR/Dockerfile")"
-docker build -t "$IMAGE" -f "$DOCKERFILE" "$CONFIG_DIR" || exit $?
+if ! $NO_BUILD; then
+  DOCKERFILE="$(readlink "$CONFIG_DIR/Dockerfile" || echo "$CONFIG_DIR/Dockerfile")"
+  docker build -t "$IMAGE" -f "$DOCKERFILE" "$CONFIG_DIR" || exit $?
+fi
 
 if [ -n "$PROFILE" ]; then
   IMAGE="$BASE_IMAGE-$PROFILE"
@@ -45,8 +49,10 @@ if [ -n "$PROFILE" ]; then
     exit 1
   fi
 
-  DOCKERFILE="$(readlink "$DOCKERFILE" || echo "$DOCKERFILE")"
-  docker build -t "$IMAGE" -f "$DOCKERFILE" "$CONFIG_DIR" || exit $?
+  if ! $NO_BUILD; then
+    DOCKERFILE="$(readlink "$DOCKERFILE" || echo "$DOCKERFILE")"
+    docker build -t "$IMAGE" -f "$DOCKERFILE" "$CONFIG_DIR" || exit $?
+  fi
 fi
 
 # Set container name
