@@ -24,5 +24,6 @@ claude-box [TARGET_DIR]
 | Flag | Description |
 |---|---|
 | `-k`, `--api-key` | Default to API key authentication |
+| `-n`, `--no-build` | Skip Docker image build step |
 | `-p`, `--profile <profile>` | Build image from `Dockerfile.<profile>` file |
 | `--` | Forward any subsequent arguments to the `claude` command |
